@@ -1,0 +1,22 @@
+# FILE: test-app.yaml
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: guestbook
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/argoproj/argocd-example-apps.git
+    targetRevision: HEAD
+    path: guestbook
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: guestbook # We'll deploy it into its own namespace to keep things clean
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    # We also want Argo to create the namespace for us if it doesn't exist
+    syncOptions:
+    - CreateNamespace=true
