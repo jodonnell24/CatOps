@@ -1,0 +1,62 @@
+---
+- name: Bootstrap Argo CD and Deploy Application
+  hosts: local
+  gather_facts: no
+
+  tasks:
+    - name: Ensure argocd namespace exists
+      community.kubernetes.k8s:
+        name: argocd
+        api_version: v1
+        kind: Namespace
+        state: present
+
+    - name: Apply Argo CD installation manifest
+      community.kubernetes.k8s:
+        state: present
+        src: https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+        namespace: argocd
+
+    # This is a critical step. We don't want to proceed until Argo is actually ready.
+    - name: Wait for Argo CD deployments to be ready
+      community.kubernetes.k8s_info:
+        api_version: apps/v1
+        kind: Deployment
+        namespace: argocd
+        name: "{{ item }}"
+      register: deployment_status
+      until: "deployment_status.resources[0].status.readyReplicas is defined and deployment_status.resources[0].status.readyReplicas == deployment_status.resources[0].spec.replicas"
+      retries: 30  # Retry 30 times
+      delay: 10    # Wait 10 seconds between retries (total 5 minutes)
+      loop:
+        - argocd-server
+        - argocd-repo-server
+        - argocd-applicationset-controller
+
+    - name: Copy the CatOps application manifest
+      ansible.builtin.copy:
+        src: files/argocd-app.yaml
+        dest: /tmp/argocd-app.yaml
+
+    - name: Apply the CatOps application manifest
+      community.kubernetes.k8s:
+        state: present
+        src: /tmp/argocd-app.yaml
+        namespace: argocd
+
+    - name: Get the initial Argo CD admin password
+      ansible.builtin.shell: >
+        kubectl -n argocd get secret argocd-initial-admin-secret
+        -o jsonpath="{.data.password}" | base64 -d
+      register: argocd_password
+      changed_when: false
+      no_log: true
+
+    - name: Display Argo CD next steps
+      ansible.builtin.debug:
+        msg:
+          - "-------------------------------------------------------------"
+          - "Argo CD is installed and configured."
+          - "Retrieve the initial admin password with:"
+          - "kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d"
+          - "-------------------------------------------------------------"

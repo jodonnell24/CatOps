@@ -1,0 +1,10 @@
+.git
+.github
+.env
+.env.*
+*.log
+tmp/
+logs/
+kubernetes/
+ansible/
+ansible-argocd/

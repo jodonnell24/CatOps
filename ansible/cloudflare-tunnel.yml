@@ -1,0 +1,35 @@
+# Manages the cloudflared systemd service on remote hosts.
+#
+# Usage:
+#   To START the tunnel:
+#   ansible-playbook playbook-cloudflare-tunnel.yml --limit your_server_name -e "state=started"
+#
+#   To STOP the tunnel:
+#   ansible-playbook playbook-cloudflare-tunnel.yml --limit your_server_name -e "state=stopped"
+#
+#   To RESTART the tunnel:
+#   ansible-playbook playbook-cloudflare-tunnel.yml --limit your_server_name -e "state=restarted"
+#
+---
+- name: Manage Cloudflare Tunnel Service
+  hosts: all # Or a specific group like 'cloudflare_hosts'
+  become: true # Required to manage systemd services
+  vars:
+    # Default state is 'started'. This can be overridden from the command line.
+    # Valid states for the systemd module include: started, stopped, restarted, reloaded
+    state: started
+    service_name: cloudflared
+
+  tasks:
+    - name: Ensure cloudflared service is in the '{{ state }}' state
+      ansible.builtin.systemd:
+        name: "{{ service_name }}"
+        state: "{{ state }}"
+        enabled: yes # Ensures the service will start on boot if the state is 'started'
+      when: state in ['started', 'stopped', 'restarted', 'reloaded']
+      # The 'when' condition is a safeguard to ensure only valid states are passed.
+
+    - name: Display a message for invalid states
+      ansible.builtin.debug:
+        msg: "The state '{{ state }}' is not a valid state. Please use 'started', 'stopped', 'restarted', or 'reloaded'."
+      when: state not in ['started', 'stopped', 'restarted', 'reloaded']
