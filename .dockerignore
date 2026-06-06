@@ -5,6 +5,6 @@
 *.log
 tmp/
 logs/
-kubernetes/
+charts/
 ansible/
 ansible-argocd/

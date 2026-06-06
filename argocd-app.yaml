@@ -6,8 +6,8 @@ metadata:
 spec:
     project: default
     source:
-        repoURL: https://github.com/jodonnell24/catops.git
-        path: kubernetes/my-app-chart
+        repoURL: https://github.com/jodonnell24/CatOps.git
+        path: charts/catops
         targetRevision: main
     destination:
         server: https://kubernetes.default.svc
